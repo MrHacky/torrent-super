@@ -1,0 +1,143 @@
+Index: src/peer_connection.cpp
+===================================================================
+--- src/peer_connection.cpp	(revision 9982)
++++ src/peer_connection.cpp	(working copy)
+@@ -4298,7 +4298,35 @@
+ 			disconnect(errors::timed_out_inactivity);
+ 			return;
+ 		}
++		
++		// TTTTTimeout
++		int importantpiece = -1;
++		for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
++			, end(m_request_queue.end()); importantpiece == -1 && i != end; ++i)
++		{
++			int pi = i->block.piece_index;
++			if (t->have_piece(pi) || t->picker().piece_priority(pi) != 7) continue;
++			importantpiece = pi;
++		}
+ 
++		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
++			, end(m_download_queue.end()); importantpiece == -1 && i != end; ++i)
++		{
++			int pi = i->block.piece_index;
++			if (t->have_piece(pi) || t->picker().piece_priority(pi) != 7) continue;
++			importantpiece = pi;
++		}		
++
++		if (importantpiece >= 0 && may_timeout && (now - m_last_request) > seconds(5) && !m_connecting)
++		{
++#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
++			peer_log("*** LAST ACTIVITY [ %d seconds ago ] ***", int(total_seconds(d)));
++#endif
++			std::cerr << "Disconnected peer after waiting 5 seconds for important piece: " << importantpiece << "\n";
++			disconnect(errors::timed_out_inactivity);
++			return;
++		}
++
+ 		// do not stall waiting for a handshake
+ 		if (may_timeout
+ 			&& !m_connecting
+Index: src/piece_picker.cpp
+===================================================================
+--- src/piece_picker.cpp	(revision 9982)
++++ src/piece_picker.cpp	(working copy)
+@@ -1457,31 +1457,75 @@
+ 
+ 		if (options & sequential)
+ 		{
+-			if (options & reverse)
+-			{
+-				for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
+-				{	
+-					if (!is_piece_free(i, pieces)) continue;
+-					num_blocks = add_blocks(i, pieces
+-						, interesting_blocks, backup_blocks
+-						, backup_blocks2, num_blocks
+-						, prefer_whole_pieces, peer, suggested_pieces
+-						, speed, options);
+-					if (num_blocks <= 0) return;
++			if (m_cursor < m_reverse_cursor) {
++				std::vector<int> picked_starts;
++				std::vector<bool> added_pieces(m_reverse_cursor - m_cursor, false);
++				bool addcursor = false;
++
++				for (int i = 0; i < m_reverse_cursor; ++i)
++					if (piece_priority(i) == 7)
++						if (i <= m_cursor)
++							addcursor = true;
++						else
++							picked_starts.push_back(i);
++				if (addcursor)
++					picked_starts.push_back(m_cursor);
++				//std::cerr << "Starts: ";
++				//for (int s = 0; s < picked_starts.size(); ++s)
++				//    std::cerr << picked_starts[s] << ',';
++				//std::cerr << '\n';
++				if (!picked_starts.empty()) {
++					for (int c = 0; c < (m_reverse_cursor - m_cursor); ++c) {
++						for (int s = 0; s < picked_starts.size(); ++s) {
++							int i = picked_starts[s];
++							if (options & reverse) {
++								if (i == m_cursor)
++									i = m_reverse_cursor;
++								i -= (c + 1);
++							} else
++								i += c;
++							if (i < m_cursor || i >= m_reverse_cursor) continue;
++							if (!is_piece_free(i, pieces)) continue;
++							if (added_pieces[i - m_cursor]) continue;
++							added_pieces[i - m_cursor] = true;
++							num_blocks = add_blocks(i, pieces
++								, interesting_blocks, backup_blocks
++								, backup_blocks2, num_blocks
++								, prefer_whole_pieces, peer, suggested_pieces
++								, speed, options);
++							if (num_blocks <= 0) return;
++						}
++					}
+ 				}
+-			}
+-			else
+-			{
+-				for (int i = m_cursor; i < m_reverse_cursor; ++i)
+-				{	
+-					if (!is_piece_free(i, pieces)) continue;
+-					num_blocks = add_blocks(i, pieces
+-						, interesting_blocks, backup_blocks
+-						, backup_blocks2, num_blocks
+-						, prefer_whole_pieces, peer, suggested_pieces
+-						, speed, options);
+-					if (num_blocks <= 0) return;
++
++				if (options & reverse)
++				{
++					for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
++					{
++						if (!is_piece_free(i, pieces)) continue;
++						if (added_pieces[i - m_cursor]) continue;
++						num_blocks = add_blocks(i, pieces
++							, interesting_blocks, backup_blocks
++							, backup_blocks2, num_blocks
++							, prefer_whole_pieces, peer, suggested_pieces
++							, speed, options);
++						if (num_blocks <= 0) return;
++					}
+ 				}
++				else
++				{
++					for (int i = m_cursor; i < m_reverse_cursor; ++i)
++					{
++						if (!is_piece_free(i, pieces)) continue;
++						if (added_pieces[i - m_cursor]) continue;
++						num_blocks = add_blocks(i, pieces
++							, interesting_blocks, backup_blocks
++							, backup_blocks2, num_blocks
++							, prefer_whole_pieces, peer, suggested_pieces
++							, speed, options);
++						if (num_blocks <= 0) return;
++					}
++				}
+ 			}
+ 		}
+ 		else if (options & rarest_first)
