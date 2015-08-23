@@ -19,7 +19,7 @@ ExternalProject_Add(libtorrent
     BUILD_IN_SOURCE 1
 
     CONFIGURE_COMMAND ./autotool.sh
-    COMMAND ./configure --enable-debug=no --enable-shared=no --enable-static=yes --prefix "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-prefix"
+    COMMAND ./configure --enable-debug=no --enable-shared=no --enable-static=yes --with-boost-system=boost_system --prefix "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-prefix"
 )
 
 #File(GLOB PATCHES_QBITTORRENT "${CMAKE_CURRENT_SOURCE_DIR}/patches/qbittorrent/*")
