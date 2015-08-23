@@ -10,6 +10,13 @@ Find_Program(CMD_GIT NAMES git)
 
 File(GLOB PATCHES_LIBTORRENT "${CMAKE_CURRENT_SOURCE_DIR}/patches/libtorrent/*")
 
+Set(FIX_ARM_PATHS FALSE CACHE TYPE BOOL)
+
+If(FIX_ARM_PATHS)
+	Set(FIX_ARM_LIBTORRENT --with-boost-system=boost_system)
+	Set(FIX_ARM_QBITTORRENT --with-boost-libdir=/usr/lib/arm-linux-gnueabihf)
+EndIf()
+
 ExternalProject_Add(libtorrent
     GIT_REPOSITORY "https://github.com/arvidn/libtorrent.git"
     #GIT_TAG "libtorrent-1_0_6"
@@ -19,7 +26,7 @@ ExternalProject_Add(libtorrent
     BUILD_IN_SOURCE 1
 
     CONFIGURE_COMMAND ./autotool.sh
-    COMMAND ./configure --enable-debug=no --enable-shared=no --enable-static=yes --with-boost-system=boost_system --prefix "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-prefix"
+    COMMAND ./configure --enable-debug=no --enable-shared=no --enable-static=yes --prefix "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-prefix" ${FIX_ARM_LIBTORRENT}
 )
 
 #File(GLOB PATCHES_QBITTORRENT "${CMAKE_CURRENT_SOURCE_DIR}/patches/qbittorrent/*")
@@ -34,5 +41,5 @@ ExternalProject_Add(qbittorrent
     #PATCH_COMMAND "${CMD_GIT}" apply -p1 ${PATCHES_QBITTORRENT}
     BUILD_IN_SOURCE 1
 
-    CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/config-qbittorrent.sh" ${CMAKE_CURRENT_BINARY_DIR}
+    CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/config-qbittorrent.sh" "${CMAKE_CURRENT_BINARY_DIR}" --disable-gui --with-libtorrent-rasterbar0.16 --prefix=${CMAKE_CURRENT_BINARY_DIR}/qbittorrent-prefix ${FIX_ARM_QBITTORRENT}
 )
