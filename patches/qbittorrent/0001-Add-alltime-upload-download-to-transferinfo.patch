@@ -1,0 +1,27 @@
+From 8f660b3f0778826b3750d0b53a89d486547b7972 Mon Sep 17 00:00:00 2001
+From: Simon Sasburg <simon.sasburg@gmail.com>
+Date: Sun, 23 Aug 2015 20:49:54 +0200
+Subject: [PATCH] Add alltime upload/download to transferinfo.
+
+---
+ src/webui/btjson.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/webui/btjson.cpp b/src/webui/btjson.cpp
+index b19959a..f75deac 100644
+--- a/src/webui/btjson.cpp
++++ b/src/webui/btjson.cpp
+@@ -557,8 +557,10 @@ QVariantMap getTranserInfoMap()
+     session_settings sessionSettings = QBtSession::instance()->getSession()->settings();
+     map[KEY_TRANSFER_DLSPEED] = sessionStatus.payload_download_rate;
+     map[KEY_TRANSFER_DLDATA] = static_cast<qlonglong>(sessionStatus.total_payload_download);
++    map["dl_info_all"] = static_cast<qlonglong>(QBtSession::instance()->getAlltimeDL());
+     map[KEY_TRANSFER_UPSPEED] = sessionStatus.payload_upload_rate;
+     map[KEY_TRANSFER_UPDATA] = static_cast<qlonglong>(sessionStatus.total_payload_upload);
++    map["up_info_all"] = static_cast<qlonglong>(QBtSession::instance()->getAlltimeUL());
+     map[KEY_TRANSFER_DLRATELIMIT] = sessionSettings.download_rate_limit;
+     map[KEY_TRANSFER_UPRATELIMIT] = sessionSettings.upload_rate_limit;
+     map[KEY_TRANSFER_DHT_NODES] = sessionStatus.dht_nodes;
+-- 
+2.1.4
+
