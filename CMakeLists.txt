@@ -1,4 +1,4 @@
-# packages: cmake git autoconf automake libtool gcc libboost-dev libboost-system-dev libqt4-dev BOOST_DATETIME BOOST++
+# packages: cmake git make autoconf automake libtool gcc g++ libboost-dev libboost-system-dev libqt4-dev
 
 Cmake_Minimum_Required(VERSION 3.0)
 
